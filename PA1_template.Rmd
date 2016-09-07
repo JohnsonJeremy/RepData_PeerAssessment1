@@ -1,25 +1,83 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Project1"
+output: html_document
 ---
 
+#1 Loading and pre-processing the data
+The following code will load the data into a data frame called "activities".  A working data frame called "tabs" will be created with a single entry for each date.  The tapply function is used to calculate the sum and mean for each date and the values column bound to the tabs data frame.  The data frame names are then adjusted to represent the column values.
+```{r}
+     activities<-read.csv("activity.csv")
+     tabs<-as.data.frame(unique(activities$date))
+     tabs<-cbind(tabs,tapply(activities$steps, activities$date, sum, na.rm=TRUE))
+     tabs<-cbind(tabs,tapply(activities$steps, activities$date, mean, na.rm=TRUE))
+     names(tabs)<-c("date", "sum", "mean")
+```
+#2. Histogram of the total number of steps taken each day
+The sum values calculated in the above section are used to generate the following histogram plot.
+``` {r, echo=TRUE}
+     hist(tabs$sum, main="Histogram of the number of steps per day", xlab="Total Steps")
+```
 
-## Loading and preprocessing the data
+#3. Mean and median number of steps taken each day
+The Mean and Median are calculated with simple mean and median functions from the above totals.
+```{r, echo = TRUE}
+     meansteps<- as.integer(mean(tabs$sum, na.rm=TRUE))
+     mediansteps<- median(tabs$sum, na.rm=TRUE)
+```
+The mean is calculated to be `r meansteps` and the median is calculated to be `r mediansteps`.
 
 
+#4. Time series plot of the average number of steps taken
+``` {r, echo=TRUE}
+     meantot<-tapply(activities$steps, activities$interval, mean, na.rm=TRUE)
+     plot(names(meantot),meantot, ylab="Number of Steps", xlab="Time of day (minutes)",
+          main="Average Steps at Each Time of Day")
+```
 
-## What is mean total number of steps taken per day?
+#5. The 5-minute interval that, on average, contains the maximum number of steps
+``` {r, echo=TRUE}
+     sumtot<-tapply(activities$steps, activities$interval, sum, na.rm=TRUE)
+     highstep<-names(which.max(sumtot))
+```
+Using the which function, the maximum number of steps was at the interval: `r highstep`.
 
 
+#6. Code to describe and show a strategy for imputing missing data
+```{r}
+## Create a copy of the data set
+     act2<-activities
+## Determine which records have NA for a value in steps
+     nasteps<-which(is.na(act2))
+     
+## Replace each NA value with the mean value at that interval     
+     for(i in nasteps){
+          act2$steps[i]<-meantot[names(meantot[])==act2$interval[i]]
+     }
+     tab2<-as.data.frame(unique(act2$date))
+     tab2<-cbind(tab2,tapply(act2$steps, act2$date, sum, na.rm=TRUE))
+     names(tab2)<-c("date", "sum")
+```     
 
-## What is the average daily activity pattern?
+#7. Histogram of the total number of steps taken each day after missing values are imputed     
+After imputing the data, the revised histogram of steps taken is as follows:
+```{r, echo=TRUE}
+     hist(tab2$sum, main="Histogram of the number of steps per day", xlab="Total Steps")
+     impmean<-as.integer(mean(tab2$sum, na.rm=TRUE))
+     impmedian<-as.integer(median (tab2$sum, na.rm=TRUE))
+```     
 
+After processing the new mean is `r impmean` compared to the previous value of `r meansteps` 
+and the new median is `r impmedian` compared to the previous value of `r mediansteps`.
 
+#8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+``` {r, echo=TRUE}
+     dayfact<-c("Weekday", "Weekday","Weekday","Weekday","Weekday","Weekend", "Weekend")
+     act2$daytype<-as.POSIXlt(act2$date)$wday
+     act2$daytype<-as.factor(dayfact[act2$daytype[]+1])
+     require(ggplot2, quietly=TRUE)
+     
+     comstep<-aggregate(steps~interval+daytype, data=act2, FUN=mean)
+     qplot(interval, steps, data=comstep, facets= ~daytype, geom="line", 
+           ylab="Average Steps", xlab="Interval")
+```
 
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
